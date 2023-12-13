@@ -1,0 +1,17 @@
+### Create a new service
+POST http://localhost:9190/services HTTP/1.1
+Content-Type: application/json
+
+{
+  "tag": "mail-service",
+  "host": "mail.example.com",
+  "address": "localhost:3001",
+  "name": "Mail service"
+}
+
+### Find all services
+GET http://localhost:9190/services HTTP/1.1
+
+### Request a service
+GET http://localhost:9190/hello HTTP/1.1
+Host: mail.example.com

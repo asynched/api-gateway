@@ -4,10 +4,10 @@ Studying and maybe even building a simple API Gateway.
 
 ## Tasks
 
-- [ ] Module: Request routing
-- [ ] Module: Service discovery
-- [ ] Module: Load balancing
-- [ ] Module: Authentication / Authorization
-- [ ] Module: Rate limiting
+- [x] Module: Service discovery
+- [x] Module: Request routing
+- [x] Module: Load balancing
 - [ ] Module: Caching
+- [ ] Module: Rate limiting
 - [ ] Module: Error handling
+- [ ] Module: Authentication / Authorization
