@@ -37,22 +37,22 @@ func main() {
 
 	defer db.Close()
 
-	serviceRepository, err := repositories.NewSQLServiceRepository(db)
+	serverRepository, err := repositories.NewSQLServerRepository(db)
 
 	if err != nil {
-		log.Fatalf("Failed to create service repository: %s", err.Error())
+		log.Fatalf("Failed to create server repository: %s", err.Error())
 	}
 
-	healthCheck := services.NewHealthCheckService(serviceRepository)
+	healthCheck := services.NewHealthCheckService(serverRepository)
 	go healthCheck.Run()
 
 	health := controllers.NewHealthController()
 	server.Setup("/health", health)
 
-	serviceDiscovery := controllers.NewServiceDiscoveryController(serviceRepository)
+	serviceDiscovery := controllers.NewServiceDiscoveryController(serverRepository)
 	server.Setup("/services", serviceDiscovery)
 
-	proxy := controllers.NewProxyController(serviceRepository)
+	proxy := controllers.NewProxyController(serverRepository)
 	server.Setup("/", proxy)
 
 	log.Printf("Server is running on: http://%s:%d\n", *host, *port)

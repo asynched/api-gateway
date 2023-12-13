@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS "services" (
+CREATE TABLE IF NOT EXISTS "servers" (
   "id" VARCHAR(32) NOT NULL PRIMARY KEY,
   "tag" VARCHAR(255) NOT NULL,
   "host" VARCHAR(255) NOT NULL,
@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS "services" (
   "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS "services_tag" ON "services" ("tag");
+CREATE INDEX IF NOT EXISTS "servers_tag" ON "servers" ("tag");
 
-CREATE INDEX IF NOT EXISTS "services_host" ON "services" ("host");
+CREATE INDEX IF NOT EXISTS "servers_host" ON "servers" ("host");
 
-CREATE INDEX IF NOT EXISTS "services_address" ON "services" ("address");
+CREATE INDEX IF NOT EXISTS "servers_address" ON "servers" ("address");

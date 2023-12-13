@@ -3,21 +3,25 @@ package controllers
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"time"
 
 	"github.com/asynched/api-gateway/internal/domain/repositories"
+	"github.com/asynched/api-gateway/internal/services"
 	"github.com/gofiber/fiber/v2"
 )
 
 type ProxyController struct {
-	serviceRepository repositories.ServiceRepository
+	serverRepository repositories.ServerRepository
+	cacheService     *services.CacheService
 }
 
-func NewProxyController(serviceRepository repositories.ServiceRepository) *ProxyController {
+func NewProxyController(serverRepository repositories.ServerRepository) *ProxyController {
 	return &ProxyController{
-		serviceRepository: serviceRepository,
+		serverRepository: serverRepository,
+		cacheService:     services.NewCacheService(),
 	}
 }
 
@@ -30,19 +34,28 @@ func (controller *ProxyController) HandleRequest(c *fiber.Ctx) error {
 		})
 	}
 
-	services := controller.serviceRepository.FindByHost(host)
+	cacheKey := fmt.Sprintf("http://%s%s", host, c.OriginalURL())
+	if response, ok := controller.cacheService.Get(cacheKey); ok {
+		for key := range response.Headers {
+			c.Set(key, response.Headers[key])
+		}
 
-	if len(services) == 0 {
+		return c.Status(response.StatusCode).Send(response.Body)
+	}
+
+	servers := controller.serverRepository.FindByHost(host)
+
+	if len(servers) == 0 {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
 			"error": "No services available for this host",
 		})
 	}
 
-	service := services[rand.Int()%len(services)]
-	requestUrl := fmt.Sprintf("http://%s%s", service.Address, c.OriginalURL())
+	server := servers[rand.Int()%len(servers)]
+	url := fmt.Sprintf("http://%s%s", server.Address, c.OriginalURL())
 
 	reader := bytes.NewReader(c.Body())
-	request, err := http.NewRequest(c.Method(), requestUrl, reader)
+	request, err := http.NewRequest(c.Method(), url, reader)
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -68,11 +81,37 @@ func (controller *ProxyController) HandleRequest(c *fiber.Ctx) error {
 		})
 	}
 
+	defer response.Body.Close()
+
 	for key := range response.Header {
 		c.Set(key, response.Header.Get(key))
 	}
 
-	return c.Status(response.StatusCode).SendStream(response.Body)
+	body, err := io.ReadAll(response.Body)
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Couldn't read response body",
+			"cause": err.Error(),
+		})
+	}
+
+	if c.Method() == "GET" && c.Get("Cache-Control") != "no-cache" {
+		cachedResponse := services.CacheResponse{
+			StatusCode: response.StatusCode,
+			Body:       body,
+			Headers:    make(map[string]string),
+			Ttl:        time.Second * 10,
+		}
+
+		for key := range response.Header {
+			cachedResponse.Headers[key] = response.Header.Get(key)
+		}
+
+		controller.cacheService.Set(cacheKey, cachedResponse)
+	}
+
+	return c.Status(response.StatusCode).Send(body)
 }
 
 func (controller *ProxyController) Setup(router fiber.Router) {

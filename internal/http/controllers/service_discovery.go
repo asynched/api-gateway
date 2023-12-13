@@ -7,23 +7,23 @@ import (
 )
 
 type ServiceDiscoveryController struct {
-	serviceRepository repositories.ServiceRepository
+	serverRepository repositories.ServerRepository
 }
 
-func NewServiceDiscoveryController(serviceRepository repositories.ServiceRepository) *ServiceDiscoveryController {
+func NewServiceDiscoveryController(serverRepository repositories.ServerRepository) *ServiceDiscoveryController {
 	return &ServiceDiscoveryController{
-		serviceRepository: serviceRepository,
+		serverRepository: serverRepository,
 	}
 }
 
 func (controller *ServiceDiscoveryController) HandleFindAll(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
-		"data": controller.serviceRepository.FindAll(),
+		"data": controller.serverRepository.FindAll(),
 	})
 }
 
 func (controller *ServiceDiscoveryController) HandleRegister(c *fiber.Ctx) error {
-	request := dto.ServiceDiscoveryRequest{}
+	request := dto.CreateServerDto{}
 
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -32,7 +32,7 @@ func (controller *ServiceDiscoveryController) HandleRegister(c *fiber.Ctx) error
 		})
 	}
 
-	service, err := controller.serviceRepository.Register(request.ToService())
+	service, err := controller.serverRepository.Register(request.ToServer())
 
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -49,7 +49,7 @@ func (controller *ServiceDiscoveryController) HandleRegister(c *fiber.Ctx) error
 func (controller *ServiceDiscoveryController) HandleDelete(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	if err := controller.serviceRepository.Delete(id); err != nil {
+	if err := controller.serverRepository.Delete(id); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Failed to delete service",
 			"cause": err.Error(),
@@ -64,7 +64,7 @@ func (controller *ServiceDiscoveryController) HandleDelete(c *fiber.Ctx) error {
 func (controller *ServiceDiscoveryController) HandleFindById(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	service, err := controller.serviceRepository.FindById(id)
+	service, err := controller.serverRepository.FindById(id)
 
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{

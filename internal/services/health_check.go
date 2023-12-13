@@ -11,21 +11,21 @@ import (
 )
 
 type HealthCheckService struct {
-	serviceRepository repositories.ServiceRepository
-	client            *http.Client
+	serverRepository repositories.ServerRepository
+	client           *http.Client
 }
 
-func NewHealthCheckService(serviceRepository repositories.ServiceRepository) *HealthCheckService {
+func NewHealthCheckService(serverRepository repositories.ServerRepository) *HealthCheckService {
 	return &HealthCheckService{
-		serviceRepository: serviceRepository,
+		serverRepository: serverRepository,
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},
 	}
 }
 
-func (s *HealthCheckService) Check(service entities.Service) error {
-	request, err := http.NewRequest("GET", fmt.Sprintf("http://%s/healthcheck", service.Address), nil)
+func (s *HealthCheckService) Check(server entities.Server) error {
+	request, err := http.NewRequest("GET", fmt.Sprintf("http://%s/healthcheck", server.Address), nil)
 
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (s *HealthCheckService) Check(service entities.Service) error {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("service %s is not healthy", service.Name)
+		return fmt.Errorf("server %s is not healthy", server.Name)
 	}
 
 	return nil
@@ -50,16 +50,16 @@ func (healthCheck *HealthCheckService) Run() {
 	<-ticker.C
 
 	for {
-		for _, service := range healthCheck.serviceRepository.FindAll() {
-			if err := healthCheck.Check(service); err != nil {
-				log.Printf("service='%s' status='%s' error='%s'\n", service.Id, entities.ServiceStatusUnhealthy, err)
-				healthCheck.serviceRepository.UpdateStatus(service.Id, entities.ServiceStatusUnhealthy)
+		for _, server := range healthCheck.serverRepository.FindAll() {
+			if err := healthCheck.Check(server); err != nil {
+				log.Printf("server='%s' status='%s' error='%s'\n", server.Id, entities.ServerStatusUnhealthy, err)
+				healthCheck.serverRepository.UpdateStatus(server.Id, entities.ServerStatusUnhealthy)
 				continue
 			}
 
-			if service.Status != entities.ServiceStatusHealthy {
-				log.Printf("service='%s' status='%s'\n", service.Id, entities.ServiceStatusHealthy)
-				healthCheck.serviceRepository.UpdateStatus(service.Id, entities.ServiceStatusHealthy)
+			if server.Status != entities.ServerStatusHealthy {
+				log.Printf("server='%s' status='%s'\n", server.Id, entities.ServerStatusHealthy)
+				healthCheck.serverRepository.UpdateStatus(server.Id, entities.ServerStatusHealthy)
 			}
 		}
 
